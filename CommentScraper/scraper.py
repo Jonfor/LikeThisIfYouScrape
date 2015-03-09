@@ -1,8 +1,10 @@
 #!/usr/bin/python
 __author__ = 'Jonfor'
 
+
 from googleapiclient.discovery import build
-import json
+# from apiclient.discovery import build
+import csv
 
 DEVELOPER_KEY = "AIzaSyBKRXzSQsPZV65rBagqGYNuMnAHF6uuxxA"
 YOUTUBE_API_SERVICE_NAME = "youtube"
@@ -18,23 +20,26 @@ def youtube_search():
     for channel in channels_response["items"]:
         uploads_list_id = channel["contentDetails"]["relatedPlaylists"]["uploads"]
 
-        print "Videos in list %s" % uploads_list_id
+        print("Videos in list %s" % uploads_list_id)
 
         playlistitems_list_request = youtube.playlistItems().list(playlistId=uploads_list_id, part="snippet", maxResults=50)
 
-        while playlistitems_list_request:
-            playlistitems_list_response = playlistitems_list_request.execute()
-            playlistitems_list_request = youtube.playlistItems().list_next(
-                playlistitems_list_request, playlistitems_list_response)
-            print playlistitems_list_response["items"]
+        with open('etho.csv', 'wb') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['title', 'video_id'])
 
-        file = open('etho.txt', 'w')
-        # Print information about each video.
-        for playlist_item in playlistitems_list_response["items"]:
-            title = playlist_item["snippet"]["title"]
-            video_id = playlist_item["snippet"]["resourceId"]["videoId"]
-            print "%s (%s)" % (title, video_id)
-            file.write("%s %s" % (title, video_id))
+            while playlistitems_list_request:
+                playlistitems_list_response = playlistitems_list_request.execute()
+                playlistitems_list_request = youtube.playlistItems().list_next(
+                    playlistitems_list_request, playlistitems_list_response)
+                print(playlistitems_list_response["items"])
+
+                # Print information about each video.
+                for playlist_item in playlistitems_list_response["items"]:
+                    title = playlist_item["snippet"]["title"]
+                    video_id = playlist_item["snippet"]["resourceId"]["videoId"]
+                    writer.writerow([title, video_id])
+
 
 if __name__ == "__main__":
 

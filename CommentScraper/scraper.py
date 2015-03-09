@@ -1,10 +1,8 @@
 #!/usr/bin/python
 __author__ = 'Jonfor'
 
-import requests
 from googleapiclient.discovery import build
 import json
-import os
 
 DEVELOPER_KEY = "AIzaSyBKRXzSQsPZV65rBagqGYNuMnAHF6uuxxA"
 YOUTUBE_API_SERVICE_NAME = "youtube"
@@ -22,23 +20,21 @@ def youtube_search():
 
         print "Videos in list %s" % uploads_list_id
 
-        next_page_token = ""
-        file = open('workfile', 'w')
-        while next_page_token is not None:
-            play_list_items_response = youtube.playlistItems().list(playlistId=uploads_list_id, part="snippet",
-                                                                    maxResults=50, pageToken=next_page_token).execute()
-            json.dump(play_list_items_response, file)
-            file.flush()
-            os.fsync(file.fileno())
+        playlistitems_list_request = youtube.playlistItems().list(playlistId=uploads_list_id, part="snippet", maxResults=50)
 
-        for playlist_item in play_list_items_response["items"]:
+        while playlistitems_list_request:
+            playlistitems_list_response = playlistitems_list_request.execute()
+            playlistitems_list_request = youtube.playlistItems().list_next(
+                playlistitems_list_request, playlistitems_list_response)
+            print playlistitems_list_response["items"]
+
+        file = open('etho.txt', 'w')
+        # Print information about each video.
+        for playlist_item in playlistitems_list_response["items"]:
             title = playlist_item["snippet"]["title"]
             video_id = playlist_item["snippet"]["resourceId"]["videoId"]
             print "%s (%s)" % (title, video_id)
-
-        next_page_token = play_list_items_response.get("tokenPagination", {}).get("nextPageToken")
-
-        print next_page_token
+            file.write("%s %s" % (title, video_id))
 
 if __name__ == "__main__":
 

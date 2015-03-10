@@ -14,10 +14,10 @@ YOUTUBE_API_VERSION = "v3"
 FREEBASE_SEARCH_URL = "https://www.googleapis.com/freebase/v1/search?%s"
 
 
-def channel_search(user_name):
+def channel_search(channel):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)
 
-    channels_response = youtube.channels().list(part="contentDetails", forUsername=user_name).execute()
+    channels_response = youtube.channels().list(part="contentDetails", forUsername=channel).execute()
 
     for channel in channels_response["items"]:
         uploads_list_id = channel["contentDetails"]["relatedPlaylists"]["uploads"]
@@ -26,10 +26,12 @@ def channel_search(user_name):
 
         playlistitems_list_request = youtube.playlistItems().list(playlistId=uploads_list_id, part="snippet", maxResults=50)
 
-        # with open('etho.csv', 'wb') as csvfile:
+        # channel_csv = '%s.csv' % channel
+        # with open(channel_csv, 'wb') as csvfile:
         #     writer = csv.writer(csvfile)
         #     writer.writerow(['title', 'video_id'])
-        with open('etho_comments.csv', 'wb') as csvfile:
+        comments_csv = '%s_comments.csv' % channel
+        with open(comments_csv, 'wb') as csvfile:
             writer = csv.writer(csvfile, delimiter="|")
             writer.writerow(['author', 'comment'])
             while playlistitems_list_request:
@@ -63,6 +65,6 @@ def channel_search(user_name):
 
 
 if __name__ == "__main__":
-    user_name = "Ethoslab"
+    CHANNEL = "Ethoslab"
 
-    channel_search(user_name)
+    channel_search(CHANNEL)

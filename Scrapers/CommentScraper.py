@@ -34,7 +34,7 @@ def read_channel_data(path):
 
 
 def get_data(url):
-    time.sleep(0.1)  # Too fast for the Google
+    time.sleep(2.5)  # Too fast for the Google
     response = requests.get(url)
     if response.status_code == 200:
         logging.info("Received response, inserting into queue")
@@ -45,13 +45,14 @@ def get_data(url):
 
 def comment_search(response_queue, url_finish_event):
 
-    while not url_finish_event.is_set():
-        while not response_queue.empty():
-            logging.info("Waiting for responses")
-            response = response_queue.get()
-            logging.info("Dequeued a response")
-            comments_csv = '%s_comments.csv' % CHANNEL_NAME
-            with open(comments_csv, 'wb') as csvfile:
+    comments_csv = '%s_comments.csv' % CHANNEL_NAME
+    with open(comments_csv, 'wb') as csvfile:
+
+        while not url_finish_event.is_set():
+            while not response_queue.empty():
+                logging.info("Waiting for responses")
+                response = response_queue.get()
+                logging.info("Dequeued a response")
                 writer = csv.writer(csvfile, delimiter="|")
                 writer.writerow(['author', 'comment'])
 

@@ -40,7 +40,7 @@ def get_data(url):
         logging.info("Received response, inserting into queue")
         response_queue.put(response)
     elif response.status_code >= 400:
-        logging.warning("Got status code {0} when hitting {1}".format(response.status_code, url))
+        logging.warning("Got status code {0} with content {1}".format(response.status_code, response.content))
 
 
 def comment_search(response_queue, url_finish_event):

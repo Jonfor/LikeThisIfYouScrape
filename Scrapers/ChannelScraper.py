@@ -1,8 +1,13 @@
 #!/usr/bin/python
 __author__ = 'Jonfor'
 
+try:
+    import unicodecsv as csv
+except ImportError:
+    import warnings
+    warnings.warn("can't import `unicodecsv` encoding errors may occur")
+    import csv
 from googleapiclient.discovery import build
-import csv
 import os.path
 
 if not os.path.isfile("api_key"):
@@ -17,6 +22,9 @@ CHANNEL_NAME = "Ethoslab"
 
 
 def channel_search():
+    """
+    Get all the videos for a channel, given in CHANNEL_NAME, and write their titles and video IDs to a csv.
+    """
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)
 
     channels_response = youtube.channels().list(part="contentDetails", forUsername=CHANNEL_NAME).execute()
@@ -32,6 +40,7 @@ def channel_search():
         with open(channel_csv, 'wb') as csvfile:
             writer = csv.writer(csvfile, delimiter="|")
             writer.writerow(['title', 'video_id'])
+            #  Gets 50 videos at a time; keep making requests until we get all of the videos.
             while playlistitems_list_request:
                 playlistitems_list_response = playlistitems_list_request.execute()
                 playlistitems_list_request = youtube.playlistItems().list_next(

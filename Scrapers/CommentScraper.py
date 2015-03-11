@@ -1,7 +1,12 @@
 #!/usr/bin/python
 __author__ = 'Jonfor'
 
-import csv
+try:
+    import unicodecsv as csv
+except ImportError:
+    import warnings
+    warnings.warn("can't import `unicodecsv` encoding errors may occur")
+    import csv
 import requests
 import xml.etree.ElementTree as eleTree
 import time
@@ -11,9 +16,10 @@ from multiprocessing import Queue, Pool, Process, Event, cpu_count
 
 fields = ("title", "video_id")
 PROCESSES = cpu_count() - 1  # Leave one for the writer process
-CHANNEL_NAME = "Ethoslab"
+CHANNEL_NAME = "jblow888"
 
 
+#  See https://districtdatalabs.silvrback.com/simple-csv-data-wrangling-with-python
 class ChannelRecord(namedtuple('ChannelRecord_', fields)):
 
     @classmethod
@@ -34,6 +40,10 @@ def read_channel_data(path):
 
 
 def get_data(url):
+    """
+    Scrape the given URL and enqueue the response.
+    :param url: The url to scrape
+    """
     time.sleep(2.5)  # Too fast for the Google
     response = requests.get(url)
     if response.status_code == 200:
@@ -44,8 +54,17 @@ def get_data(url):
 
 
 def comment_search(response_queue, url_finish_event):
+    """
+    While the scraping processes are going, wait for responses to be queued.
+    As soon as a response is queued, retrieve the author and comment from the response
+    Write the results to the comments CSV.
+    Repeat until the scraping processes indicate (through url_finish_event) that all requests have finished.
+    :param response_queue: The queue of responses that have been received.
+    :param url_finish_event: Event that indicates the scraping processes have all finished.
+    """
 
     comments_csv = '%s_comments.csv' % CHANNEL_NAME
+    ATOM = '{http://www.w3.org/2005/Atom}'  # Some XML thing from every XML element returned by the YouTube API
     with open(comments_csv, 'wb') as csvfile:
 
         while not url_finish_event.is_set():
@@ -57,11 +76,11 @@ def comment_search(response_queue, url_finish_event):
                 writer.writerow(['author', 'comment'])
 
                 root = eleTree.fromstring(response.text.encode('utf-8'))
-                comments = root.findall('{http://www.w3.org/2005/Atom}entry')
+                comments = root.findall(ATOM + 'entry')
 
                 for comment in comments:
-                    author = comment.find('{http://www.w3.org/2005/Atom}author').find('{http://www.w3.org/2005/Atom}name').text
-                    content = comment.find('{http://www.w3.org/2005/Atom}content').text
+                    author = comment.find(ATOM + 'author').find(ATOM + 'name').text
+                    content = comment.find(ATOM + 'content').text
                     # Apparently people like leaving blank comments and breaking my scraper
                     if author is None or content is None:
                         continue
@@ -73,9 +92,10 @@ def comment_search(response_queue, url_finish_event):
 
 
 if __name__ == "__main__":
-    VIDEOS = CHANNEL_NAME + ".csv"  # This CSV contains the video IDs
+    VIDEOS = CHANNEL_NAME + ".csv"  # This CSV contains the video IDs received from the ChannelScraper.
     response_queue = Queue()
 
+    #  Create the list of URLs for the scraper processes to start working on
     urls = []
     for row in read_channel_data(VIDEOS):
         url = "https://gdata.youtube.com/feeds/api/videos/%s/comments?orderby=published" % row[1]

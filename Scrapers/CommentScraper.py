@@ -5,23 +5,25 @@ try:
     import unicodecsv as csv
 except ImportError:
     import warnings
+
     warnings.warn("can't import `unicodecsv` encoding errors may occur")
     import csv
-import requests
 import xml.etree.ElementTree as eleTree
 import time
 import logging
 from collections import namedtuple
 from multiprocessing import Queue, Pool, Process, Event, cpu_count
 
+import requests
+
+
 fields = ("title", "video_id")
 PROCESSES = cpu_count() - 1  # Leave one for the writer process
 CHANNEL_NAME = "jblow888"
 
 
-#  See https://districtdatalabs.silvrback.com/simple-csv-data-wrangling-with-python
+# See https://districtdatalabs.silvrback.com/simple-csv-data-wrangling-with-python
 class ChannelRecord(namedtuple('ChannelRecord_', fields)):
-
     @classmethod
     def parse(cls, row):
         row = list(row)  # Make row mutable
@@ -33,7 +35,7 @@ class ChannelRecord(namedtuple('ChannelRecord_', fields)):
 
 def read_channel_data(path):
     with open(path, 'rU') as data:
-        data.readline()            # Skip the header
+        data.readline()  # Skip the header
         reader = csv.reader(data, delimiter='|')  # Create a regular tuple reader
         for row in map(ChannelRecord.parse, reader):
             yield row
@@ -49,11 +51,12 @@ def get_data(url):
     if response.status_code == 200:
         logging.info("Received response, inserting into queue")
         response_queue.put(response)
+        ids_queue.put(url.split('/')[6])
     elif response.status_code >= 400:
         logging.warning("Got status code {0} with content {1}".format(response.status_code, response.content))
 
 
-def comment_search(response_queue, url_finish_event):
+def comment_search(response_queue, url_finish_event, ids_queue):
     """
     While the scraping processes are going, wait for responses to be queued.
     As soon as a response is queued, retrieve the author and comment from the response
@@ -66,14 +69,14 @@ def comment_search(response_queue, url_finish_event):
     comments_csv = '%s_comments.csv' % CHANNEL_NAME
     ATOM = '{http://www.w3.org/2005/Atom}'  # Some XML thing from every XML element returned by the YouTube API
     with open(comments_csv, 'wb') as csvfile:
-
+        writer = csv.writer(csvfile, delimiter="|")
+        writer.writerow(['video_id', 'author', 'comment'])
         while not url_finish_event.is_set():
             while not response_queue.empty():
                 logging.info("Waiting for responses")
                 response = response_queue.get()
+                id = ids_queue.get()
                 logging.info("Dequeued a response")
-                writer = csv.writer(csvfile, delimiter="|")
-                writer.writerow(['author', 'comment'])
 
                 root = eleTree.fromstring(response.text.encode('utf-8'))
                 comments = root.findall(ATOM + 'entry')
@@ -88,21 +91,23 @@ def comment_search(response_queue, url_finish_event):
                         author = author.encode('utf-8')
                         content = content.encode('utf-8')
 
-                    writer.writerow([author, content])
+                    writer.writerow([id, author, content])
 
 
 if __name__ == "__main__":
     VIDEOS = CHANNEL_NAME + ".csv"  # This CSV contains the video IDs received from the ChannelScraper.
     response_queue = Queue()
+    ids_queue = Queue()
 
     #  Create the list of URLs for the scraper processes to start working on
     urls = []
     for row in read_channel_data(VIDEOS):
-        url = "https://gdata.youtube.com/feeds/api/videos/%s/comments?orderby=published" % row[1]
+        video_id = row[1]
+        url = "https://gdata.youtube.com/feeds/api/videos/%s/comments?orderby=published" % video_id
         urls.append(url)
 
     url_finish_event = Event()
-    write_process = Process(target=comment_search, args=(response_queue, url_finish_event))
+    write_process = Process(target=comment_search, args=(response_queue, url_finish_event, ids_queue))
     write_process.start()
 
     pool = Pool(processes=PROCESSES)

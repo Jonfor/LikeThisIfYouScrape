@@ -5,10 +5,13 @@ try:
     import unicodecsv as csv
 except ImportError:
     import warnings
+
     warnings.warn("can't import `unicodecsv` encoding errors may occur")
     import csv
-from googleapiclient.discovery import build
 import os.path
+
+from googleapiclient.discovery import build
+
 
 if not os.path.isfile("api_key"):
     print "Error: Please have your YouTube API key in a file named 'api_key'."
@@ -18,7 +21,7 @@ with open("api_key") as api_key_file:
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 FREEBASE_SEARCH_URL = "https://www.googleapis.com/freebase/v1/search?%s"
-CHANNEL_NAME = "Ethoslab"
+CHANNEL_NAME = "sethbling"
 
 
 def channel_search():
@@ -34,13 +37,14 @@ def channel_search():
 
         print("Videos in list %s" % uploads_list_id)
 
-        playlistitems_list_request = youtube.playlistItems().list(playlistId=uploads_list_id, part="snippet", maxResults=50)
+        playlistitems_list_request = youtube.playlistItems().list(playlistId=uploads_list_id, part="snippet",
+                                                                  maxResults=50)
 
         channel_csv = '%s.csv' % CHANNEL_NAME
         with open(channel_csv, 'wb') as csvfile:
             writer = csv.writer(csvfile, delimiter="|")
             writer.writerow(['title', 'video_id'])
-            #  Gets 50 videos at a time; keep making requests until we get all of the videos.
+            # Gets 50 videos at a time; keep making requests until we get all of the videos.
             while playlistitems_list_request:
                 playlistitems_list_response = playlistitems_list_request.execute()
                 playlistitems_list_request = youtube.playlistItems().list_next(
@@ -53,7 +57,7 @@ def channel_search():
                     video_id = playlist_item["snippet"]["resourceId"]["videoId"]
                     writer.writerow([title, video_id])
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     channel_search()
     print "Successfully finished outputting data to %s.csv." % CHANNEL_NAME

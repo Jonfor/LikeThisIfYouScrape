@@ -12,7 +12,7 @@ import sys
 import os
 
 fields = ("video_id", "author", "comment")
-CHANNEL_NAME = "jblow888"
+CHANNEL_NAME = "sethbling"
 
 
 # See https://districtdatalabs.silvrback.com/simple-csv-data-wrangling-with-python
@@ -36,35 +36,32 @@ def read_comment_data(path):
 
 if __name__ == "__main__":
     COMMENTS_CSV = os.path.realpath(CHANNEL_NAME + "_comments.csv")
-    CHANNEL_RELEVANT = CHANNEL_NAME + "_rel.csv"
+    CHANNEL_RELEVANT = CHANNEL_NAME + "_rel.txt"
     CHANNEL_NOT_RELEVANT = CHANNEL_NAME + "_not_rel.txt"
 
+    print("Please enter 1 for relevant and 2 for not relevant\n")
     with open(CHANNEL_RELEVANT, 'wb') as rel_file:
-        writer = csv.writer(rel_file, delimiter="|")
-        writer.writerow(['video_id', 'author', 'comment', 'helpfulness', 'length_of_text'])
-        lens = []
-        counter = 0
-        for row in read_comment_data(COMMENTS_CSV):
-            author = row[1].encode('utf-8', 'ignore')
-            comment = row[2].encode('utf-8', 'ignore')
-            print("\n\n")
-            print("Curr video: {0}\ncomment: {1}".format(row[0], comment))
-            print("\n\n")
+        with open(CHANNEL_NOT_RELEVANT, 'wb') as not_rel_file:
+            for row in read_comment_data(COMMENTS_CSV):
 
-            if author == "author" and comment == "comment":
-                print("^^^^^Skipping this one!^^^^^\n")
-                continue
+                id = row[0].encode('utf-8', 'ignore')
+                first = row[1].encode('utf-8', 'ignore')
+                comment = row[2].encode('utf-8', 'ignore')
+                if first == "author" and comment == "comment":
+                    print("^^^^^Skipping this one!^^^^^\n")
+                    continue
 
-            try:
-                rel = int(raw_input("1=rel 2=not rel -1=STAHP"))
-                lens.insert(counter, len(row[2]))
-                counter += 1
-                if rel != -1:
-                    writer.writerow([row[0], row[1], row[2], rel, len(row[2])])
-                elif rel == -1:
-                    print("So long and thanks for all the fish!\n")
-                    break
-                else:
-                    print("Please enter only 1 or 2", file=sys.stderr)
-            except ValueError:
-                print("Please enter only 1 or 2.", file=sys.stderr)
+                print("Video id is {0}\ncomment: {1}".format(id, comment))
+                try:
+                    rel = int(raw_input("1=rel 2=not rel -1=STAHP"))
+                    if rel == 1:
+                        print(comment, file=rel_file)
+                    elif rel == 2:
+                        print(comment, file=not_rel_file)
+                    elif rel == -1:
+                        print("So long and thanks for all the fish!\n")
+                        break
+                    else:
+                        print("Please enter only 1 or 2", file=sys.stderr)
+                except ValueError:
+                    print("Please enter only 1 or 2.", file=sys.stderr)

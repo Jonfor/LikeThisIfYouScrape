@@ -16,11 +16,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn import metrics
+from sklearn import cross_validation
 import numpy as np
 import os
-import matplotlib.pyplot as plt
 # from sklearn.datasets import fetch_20newsgroups
-import numpy
 
 fields = ("video_id", "author", "comment", "helpfulness", "length_of_text")
 
@@ -65,13 +64,15 @@ def run_test(clf, rel_train, rel_test):
         print("That is not a classifier!\n")
         exit(1)
 
+    scores = cross_validation.cross_val_score(text_clf, train_data, rel_train.target, cv=5)
+    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
     text_clf = text_clf.fit(train_data, rel_train.target)
 
     test_data = rel_test.data
     predicted = text_clf.predict(test_data)
 
     mean = np.mean(predicted == rel_test.target)
-    print(mean)
+    print("The mean is : {0}".format(mean))
 
     print(metrics.classification_report(rel_test.target, predicted, target_names=rel_test.target_names))
     print(metrics.confusion_matrix(rel_test.target, predicted))
@@ -92,30 +93,27 @@ if __name__ == "__main__":
     # results.append(run_test('2', twenty_train, twenty_test))
 
 
-    length_of_review_texts = []
-    helpfulness = []
-    for row in read_comment_data("jblow888_rel.csv"):
-        # This was used to find the top three outliers
-        # if row[7] > 15000:
-        # print row
-
-        length_of_review_texts.append(row[4])
-        helpfulness.append(row[3])
-
-    # Used to calculate pearson correlation
-    pearson = numpy.corrcoef(length_of_review_texts, helpfulness)[0, 1]
-    print(pearson)
-
-    # Histogram of length of comments
-    plt.hist(length_of_review_texts, 200)
-    plt.title("Length of Comment")
-    plt.xlabel("Number of characters in comment")
-    plt.ylabel("Number of Commenters")
-    plt.show()
-
-    # Scatterplot of length of review text vs. helpfulness
-    plt.scatter(helpfulness, length_of_review_texts)
-    plt.title("Length of Review Text vs. Helpfulness")
-    plt.xlabel("Helpfulness")
-    plt.ylabel("Length of Review Text")
-    plt.show()
+    # length_of_review_texts = []
+    # helpfulness = []
+    # for row in read_comment_data("jblow888_rel.csv"):
+    #
+    # length_of_review_texts.append(row[4])
+    #     helpfulness.append(row[3])
+    #
+    # # Used to calculate pearson correlation
+    # pearson = numpy.corrcoef(length_of_review_texts, helpfulness)[0, 1]
+    # print(pearson)
+    #
+    # # Histogram of length of comments
+    # plt.hist(length_of_review_texts, 200)
+    # plt.title("Length of Comment")
+    # plt.xlabel("Number of characters in comment")
+    # plt.ylabel("Number of Commenters")
+    # plt.show()
+    #
+    # # Scatterplot of length of review text vs. helpfulness
+    # plt.scatter(helpfulness, length_of_review_texts)
+    # plt.title("Length of Review Text vs. Helpfulness")
+    # plt.xlabel("Helpfulness")
+    # plt.ylabel("Length of Review Text")
+    # plt.show()

@@ -50,6 +50,7 @@ def read_comment_data(path):
 
 def run_test(clf, rel_train, rel_test):
     train_data = rel_train.data
+    test_data = rel_test.data
 
     if clf == '1':
         print("Predicting using Multinomial Naive Bayes!\n")
@@ -65,10 +66,14 @@ def run_test(clf, rel_train, rel_test):
         exit(1)
 
     scores = cross_validation.cross_val_score(text_clf, train_data, rel_train.target, cv=5)
-    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+    print("Estimated accuracy: %0.2f (std. dev: %0.2f)" % (scores.mean(), scores.std()))
+
+    predicted_cv = cross_validation.cross_val_predict(text_clf, train_data, rel_train.target, cv=5)
+    print("Actual accuracy: %0.2f (std. dev: %0.2f)" % (
+    metrics.accuracy_score(rel_train.target, predicted_cv), predicted_cv.std()))
+
     text_clf = text_clf.fit(train_data, rel_train.target)
 
-    test_data = rel_test.data
     predicted = text_clf.predict(test_data)
 
     mean = np.mean(predicted == rel_test.target)
